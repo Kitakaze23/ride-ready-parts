@@ -39,11 +39,11 @@ export async function fetchRankedListings(filters: {
   if (priceMin !== undefined && priceMin > 0) q = q.gte('price', priceMin);
   if (priceMax !== undefined && priceMax > 0) q = q.lte('price', priceMax);
 
-  // Brand/model compatibility filter
+  // Brand/model/generation compatibility filter
   if (brandId && brandId !== 'all') {
-    const compatQuery = modelId && modelId !== 'all'
-      ? supabase.from('listing_compatibility').select('listing_id').eq('brand_id', brandId).eq('model_id', modelId)
-      : supabase.from('listing_compatibility').select('listing_id').eq('brand_id', brandId);
+    let compatQuery = supabase.from('listing_compatibility').select('listing_id').eq('brand_id', brandId);
+    if (modelId && modelId !== 'all') compatQuery = compatQuery.eq('model_id', modelId);
+    if (generationId && generationId !== 'all') compatQuery = compatQuery.eq('generation_id', generationId);
     
     const { data: compatIds } = await compatQuery;
     const ids = compatIds?.map((c: any) => c.listing_id) || [];
