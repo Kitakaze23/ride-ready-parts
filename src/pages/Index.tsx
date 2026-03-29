@@ -90,6 +90,34 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Type Sections */}
+      <section className="container py-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <Link
+            to="/search?type=motorcycle"
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <Bike className="h-6 w-6" />
+            </div>
+            <h3 className="mt-3 font-display text-lg font-bold sm:text-xl">Мотоциклы</h3>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Купить или продать мотоцикл</p>
+            <ArrowRight className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+          </Link>
+          <Link
+            to="/search?type=part"
+            className="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <Wrench className="h-6 w-6" />
+            </div>
+            <h3 className="mt-3 font-display text-lg font-bold sm:text-xl">Запчасти</h3>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Найти совместимые запчасти</p>
+            <ArrowRight className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+          </Link>
+        </div>
+      </section>
+
       {/* Categories */}
       <section className="container py-8">
         <h2 className="font-display text-xl font-bold">Категории</h2>
