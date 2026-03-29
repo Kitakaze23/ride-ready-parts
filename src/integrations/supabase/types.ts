@@ -237,6 +237,38 @@ export type Database = {
           },
         ]
       }
+      listing_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          listing_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          listing_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          listing_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_events_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_images: {
         Row: {
           id: string
@@ -466,13 +498,14 @@ export type Database = {
           name: string | null
           successful_deals: number | null
           total_reviews: number | null
+          trust_score: number | null
           user_id: string | null
         }
         Relationships: []
       }
     }
     Functions: {
-      [_ in never]: never
+      compute_listing_rank: { Args: { p_listing_id: string }; Returns: number }
     }
     Enums: {
       listing_condition: "new" | "used"
