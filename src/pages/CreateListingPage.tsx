@@ -6,12 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, X, Upload } from 'lucide-react';
+
+interface CompatEntry {
+  brandId: string;
+  modelId: string;
+  generationId: string;
+  brandName: string;
+  modelName: string;
+  generationName: string;
+}
 
 export default function CreateListingPage() {
   const { user } = useAuth();
@@ -23,11 +33,15 @@ export default function CreateListingPage() {
   const [condition, setCondition] = useState<'new' | 'used'>('used');
   const [type, setType] = useState<'part' | 'motorcycle'>('part');
   const [city, setCity] = useState('');
-  const [selectedBrandId, setSelectedBrandId] = useState('');
-  const [selectedModelId, setSelectedModelId] = useState('');
-  const [compatList, setCompatList] = useState<{ brandId: string; modelId: string; brandName: string; modelName: string }[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+
+  // Compatibility
+  const [compatEnabled, setCompatEnabled] = useState(false);
+  const [compatList, setCompatList] = useState<CompatEntry[]>([]);
+  const [selBrandId, setSelBrandId] = useState('');
+  const [selModelId, setSelModelId] = useState('');
+  const [selGenId, setSelGenId] = useState('');
 
   const { data: brands } = useQuery({
     queryKey: ['brands'],
@@ -38,13 +52,23 @@ export default function CreateListingPage() {
   });
 
   const { data: models } = useQuery({
-    queryKey: ['models', selectedBrandId],
+    queryKey: ['models', selBrandId],
     queryFn: async () => {
-      if (!selectedBrandId) return [];
-      const { data } = await supabase.from('models').select('*').eq('brand_id', selectedBrandId).order('name');
+      if (!selBrandId) return [];
+      const { data } = await supabase.from('models').select('*').eq('brand_id', selBrandId).order('name');
       return data || [];
     },
-    enabled: !!selectedBrandId,
+    enabled: !!selBrandId,
+  });
+
+  const { data: generations } = useQuery({
+    queryKey: ['generations', selModelId],
+    queryFn: async () => {
+      if (!selModelId) return [];
+      const { data } = await supabase.from('generations').select('*').eq('model_id', selModelId).order('year_from');
+      return data || [];
+    },
+    enabled: !!selModelId,
   });
 
   if (!user) {
@@ -53,18 +77,22 @@ export default function CreateListingPage() {
   }
 
   const addCompat = () => {
-    if (!selectedBrandId) return;
-    const brand = brands?.find((b: any) => b.id === selectedBrandId);
-    const model = models?.find((m: any) => m.id === selectedModelId);
+    if (!selBrandId) return;
+    const brand = brands?.find((b: any) => b.id === selBrandId);
+    const model = models?.find((m: any) => m.id === selModelId);
+    const gen = generations?.find((g: any) => g.id === selGenId);
     if (brand) {
       setCompatList([...compatList, {
         brandId: brand.id,
         modelId: model?.id || '',
+        generationId: gen?.id || '',
         brandName: brand.name,
         modelName: model?.name || '',
+        generationName: gen ? `${gen.name}${gen.year_from ? ` (${gen.year_from}–${gen.year_to || '...'})` : ''}` : '',
       }]);
-      setSelectedBrandId('');
-      setSelectedModelId('');
+      setSelBrandId('');
+      setSelModelId('');
+      setSelGenId('');
     }
   };
 
@@ -121,12 +149,15 @@ export default function CreateListingPage() {
       }
 
       // Insert compatibility
-      for (const c of compatList) {
-        await supabase.from('listing_compatibility').insert({
-          listing_id: listing.id,
-          brand_id: c.brandId,
-          model_id: c.modelId || null,
-        });
+      if (compatEnabled) {
+        for (const c of compatList) {
+          await supabase.from('listing_compatibility').insert({
+            listing_id: listing.id,
+            brand_id: c.brandId,
+            model_id: c.modelId || null,
+            generation_id: c.generationId || null,
+          });
+        }
       }
 
       toast.success('Объявление создано!');
@@ -209,41 +240,67 @@ export default function CreateListingPage() {
             </div>
           </div>
 
-          {/* Compatibility */}
+          {/* Compatibility Toggle */}
           <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="font-display font-bold">Совместимость</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Укажите для каких мотоциклов подходит</p>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {compatList.map((c, i) => (
-                <Badge key={i} variant="secondary" className="gap-1">
-                  {c.brandName} {c.modelName}
-                  <button type="button" onClick={() => setCompatList(compatList.filter((_, j) => j !== i))}>
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="font-display font-bold">Подходит к моделям</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Укажите мотоциклы, к которым подходит запчасть</p>
+              </div>
+              <Switch checked={compatEnabled} onCheckedChange={setCompatEnabled} />
             </div>
 
-            <div className="mt-3 flex gap-2">
-              <Select value={selectedBrandId} onValueChange={(v) => { setSelectedBrandId(v); setSelectedModelId(''); }}>
-                <SelectTrigger className="flex-1"><SelectValue placeholder="Марка" /></SelectTrigger>
-                <SelectContent>
-                  {brands?.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {selectedBrandId && models && models.length > 0 && (
-                <Select value={selectedModelId} onValueChange={setSelectedModelId}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Модель" /></SelectTrigger>
-                  <SelectContent>
-                    {models.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-              <Button type="button" variant="outline" size="icon" onClick={addCompat} disabled={!selectedBrandId}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            {compatEnabled && (
+              <div className="mt-4 space-y-3">
+                {compatList.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {compatList.map((c, i) => (
+                      <Badge key={i} variant="secondary" className="gap-1">
+                        {c.brandName} {c.modelName} {c.generationName}
+                        <button type="button" onClick={() => setCompatList(compatList.filter((_, j) => j !== i))}>
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Select value={selBrandId} onValueChange={(v) => { setSelBrandId(v); setSelModelId(''); setSelGenId(''); }}>
+                    <SelectTrigger><SelectValue placeholder="Марка" /></SelectTrigger>
+                    <SelectContent>
+                      {brands?.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+
+                  {selBrandId && models && models.length > 0 && (
+                    <Select value={selModelId} onValueChange={(v) => { setSelModelId(v); setSelGenId(''); }}>
+                      <SelectTrigger><SelectValue placeholder="Модель" /></SelectTrigger>
+                      <SelectContent>
+                        {models.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {selModelId && generations && generations.length > 0 && (
+                    <Select value={selGenId} onValueChange={setSelGenId}>
+                      <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
+                      <SelectContent>
+                        {generations.map((g: any) => (
+                          <SelectItem key={g.id} value={g.id}>
+                            {g.name}{g.year_from ? ` (${g.year_from}–${g.year_to || '...'})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  <Button type="button" variant="outline" size="icon" onClick={addCompat} disabled={!selBrandId} className="h-10 w-10">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
 
           <Button type="submit" size="lg" className="w-full" disabled={loading}>

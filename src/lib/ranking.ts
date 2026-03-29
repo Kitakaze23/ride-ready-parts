@@ -8,6 +8,7 @@ export async function fetchRankedListings(filters: {
   query?: string;
   brandId?: string;
   modelId?: string;
+  generationId?: string;
   categoryId?: string;
   condition?: string;
   type?: string;
@@ -17,7 +18,7 @@ export async function fetchRankedListings(filters: {
   limit?: number;
 }) {
   const {
-    query, brandId, modelId, categoryId, condition, type,
+    query, brandId, modelId, generationId, categoryId, condition, type,
     priceMin, priceMax, sortBy = 'ranked', limit = 50,
   } = filters;
 

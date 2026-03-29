@@ -11,6 +11,8 @@ interface SearchFiltersProps {
   setBrandId: (v: string) => void;
   modelId: string;
   setModelId: (v: string) => void;
+  generationId: string;
+  setGenerationId: (v: string) => void;
   condition: string;
   setCondition: (v: string) => void;
   categoryId: string;
@@ -21,6 +23,7 @@ interface SearchFiltersProps {
   setPriceMax: (v: string) => void;
   brands: any[];
   models: any[];
+  generations: any[];
   categories: any[];
   showFilters: boolean;
   setShowFilters: (v: boolean) => void;
@@ -30,9 +33,10 @@ interface SearchFiltersProps {
 
 export function SearchFilters({
   type, setType, brandId, setBrandId, modelId, setModelId,
+  generationId, setGenerationId,
   condition, setCondition, categoryId, setCategoryId,
   priceMin, setPriceMin, priceMax, setPriceMax,
-  brands, models, categories,
+  brands, models, generations, categories,
   showFilters, setShowFilters, onClear, hasFilters,
 }: SearchFiltersProps) {
   return (
@@ -60,7 +64,7 @@ export function SearchFilters({
 
       <div>
         <Label className="text-xs text-muted-foreground">Марка</Label>
-        <Select value={brandId} onValueChange={(v) => { setBrandId(v); setModelId(''); }}>
+        <Select value={brandId} onValueChange={(v) => { setBrandId(v); setModelId(''); setGenerationId(''); }}>
           <SelectTrigger className="mt-1"><SelectValue placeholder="Любая" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Любая</SelectItem>
@@ -72,7 +76,7 @@ export function SearchFilters({
       {brandId && brandId !== 'all' && models && models.length > 0 && (
         <div>
           <Label className="text-xs text-muted-foreground">Модель</Label>
-          <Select value={modelId} onValueChange={setModelId}>
+          <Select value={modelId} onValueChange={(v) => { setModelId(v); setGenerationId(''); }}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="Любая" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Любая</SelectItem>
@@ -82,17 +86,22 @@ export function SearchFilters({
         </div>
       )}
 
-      <div>
-        <Label className="text-xs text-muted-foreground">Состояние</Label>
-        <Select value={condition} onValueChange={setCondition}>
-          <SelectTrigger className="mt-1"><SelectValue placeholder="Любое" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Любое</SelectItem>
-            <SelectItem value="new">Новый</SelectItem>
-            <SelectItem value="used">Б/У</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {modelId && modelId !== 'all' && generations && generations.length > 0 && (
+        <div>
+          <Label className="text-xs text-muted-foreground">Год / поколение</Label>
+          <Select value={generationId} onValueChange={setGenerationId}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Любое" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Любое</SelectItem>
+              {generations.map((g: any) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.name}{g.year_from ? ` (${g.year_from}–${g.year_to || '...'})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div>
         <Label className="text-xs text-muted-foreground">Категория</Label>
@@ -101,6 +110,18 @@ export function SearchFilters({
           <SelectContent>
             <SelectItem value="all">Все</SelectItem>
             {categories?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label className="text-xs text-muted-foreground">Состояние</Label>
+        <Select value={condition} onValueChange={setCondition}>
+          <SelectTrigger className="mt-1"><SelectValue placeholder="Любое" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Любое</SelectItem>
+            <SelectItem value="new">Новый</SelectItem>
+            <SelectItem value="used">Б/У</SelectItem>
           </SelectContent>
         </Select>
       </div>

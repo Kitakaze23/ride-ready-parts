@@ -18,6 +18,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [brandId, setBrandId] = useState(searchParams.get('brand') || '');
   const [modelId, setModelId] = useState(searchParams.get('model') || '');
+  const [generationId, setGenerationId] = useState(searchParams.get('generation') || '');
   const [categoryId, setCategoryId] = useState(searchParams.get('category') || '');
   const [condition, setCondition] = useState(searchParams.get('condition') || '');
   const [type, setType] = useState(searchParams.get('type') || '');
@@ -39,11 +40,21 @@ export default function SearchPage() {
   const { data: models } = useQuery({
     queryKey: ['models', brandId],
     queryFn: async () => {
-      if (!brandId) return [];
+      if (!brandId || brandId === 'all') return [];
       const { data } = await supabase.from('models').select('*').eq('brand_id', brandId).order('name');
       return data || [];
     },
-    enabled: !!brandId,
+    enabled: !!brandId && brandId !== 'all',
+  });
+
+  const { data: generations } = useQuery({
+    queryKey: ['generations', modelId],
+    queryFn: async () => {
+      if (!modelId || modelId === 'all') return [];
+      const { data } = await supabase.from('generations').select('*').eq('model_id', modelId).order('year_from');
+      return data || [];
+    },
+    enabled: !!modelId && modelId !== 'all',
   });
 
   const { data: categories } = useQuery({
@@ -65,9 +76,9 @@ export default function SearchPage() {
   });
 
   const { data: listings, isLoading } = useQuery({
-    queryKey: ['search-listings', query, brandId, modelId, categoryId, condition, type, sortBy, priceMin, priceMax],
+    queryKey: ['search-listings', query, brandId, modelId, generationId, categoryId, condition, type, sortBy, priceMin, priceMax],
     queryFn: () => fetchRankedListings({
-      query, brandId, modelId, categoryId, condition, type, sortBy,
+      query, brandId, modelId, generationId, categoryId, condition, type, sortBy,
       priceMin: priceMin ? parseFloat(priceMin) : undefined,
       priceMax: priceMax ? parseFloat(priceMax) : undefined,
     }),
@@ -85,11 +96,11 @@ export default function SearchPage() {
   };
 
   const clearFilters = () => {
-    setQuery(''); setBrandId(''); setModelId(''); setCategoryId('');
-    setCondition(''); setType(''); setPriceMin(''); setPriceMax('');
+    setQuery(''); setBrandId(''); setModelId(''); setGenerationId('');
+    setCategoryId(''); setCondition(''); setType(''); setPriceMin(''); setPriceMax('');
   };
 
-  const hasFilters = !!(brandId || modelId || categoryId || condition || type || priceMin || priceMax);
+  const hasFilters = !!(brandId || modelId || generationId || categoryId || condition || type || priceMin || priceMax);
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,11 +126,13 @@ export default function SearchPage() {
             type={type} setType={setType}
             brandId={brandId} setBrandId={setBrandId}
             modelId={modelId} setModelId={setModelId}
+            generationId={generationId} setGenerationId={setGenerationId}
             condition={condition} setCondition={setCondition}
             categoryId={categoryId} setCategoryId={setCategoryId}
             priceMin={priceMin} setPriceMin={setPriceMin}
             priceMax={priceMax} setPriceMax={setPriceMax}
-            brands={brands || []} models={models || []} categories={categories || []}
+            brands={brands || []} models={models || []}
+            generations={generations || []} categories={categories || []}
             showFilters={showFilters} setShowFilters={setShowFilters}
             onClear={clearFilters} hasFilters={hasFilters}
           />
