@@ -80,6 +80,7 @@ export interface SellerStats {
   total_reviews: number;
   successful_deals: number;
   active_listings: number;
+  trust_score: number;
 }
 
 export interface Chat {
