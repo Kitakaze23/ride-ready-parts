@@ -1,22 +1,31 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Header } from '@/components/Header';
 import { SellerCard } from '@/components/SellerCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Heart, MessageCircle, MapPin, Eye, Calendar, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Eye, Calendar, ChevronLeft, ChevronRight, Share2, Wrench } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { type SellerStats } from '@/lib/types';
+import { trackEvent } from '@/lib/tracking';
 
 export default function ListingPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentImage, setCurrentImage] = useState(0);
+
+  // Track view
+  useEffect(() => {
+    if (id) {
+      trackEvent(id, 'view', user?.id);
+    }
+  }, [id, user?.id]);
 
   const { data: listing, isLoading } = useQuery({
     queryKey: ['listing', id],
@@ -60,14 +69,18 @@ export default function ListingPage() {
       await supabase.from('favorites').delete().eq('user_id', user.id).eq('listing_id', id!);
     } else {
       await supabase.from('favorites').insert({ user_id: user.id, listing_id: id! });
+      trackEvent(id!, 'favorite', user.id);
     }
+    queryClient.invalidateQueries({ queryKey: ['is-favorited', id] });
   };
 
   const handleContact = async () => {
     if (!user) { toast.error('Войдите, чтобы написать продавцу'); navigate('/auth'); return; }
     if (!listing) return;
 
-    // Find or create chat
+    // Track contact event
+    trackEvent(listing.id, 'contact', user.id);
+
     const { data: existingChat } = await supabase
       .from('chats')
       .select('id')
@@ -184,13 +197,15 @@ export default function ListingPage() {
               </div>
             </div>
 
-            {/* Compatibility */}
+            {/* Compatibility — prominent block */}
             {compatibility.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <h2 className="font-display text-lg font-bold">Совместимость</h2>
-                <div className="mt-2 flex flex-wrap gap-2">
+              <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4">
+                <h2 className="flex items-center gap-2 font-display text-lg font-bold text-primary">
+                  <Wrench className="h-5 w-5" /> Совместимость
+                </h2>
+                <div className="mt-3 flex flex-wrap gap-2">
                   {compatibility.map((c: any) => (
-                    <Badge key={c.id} variant="secondary" className="text-sm">
+                    <Badge key={c.id} className="bg-primary/10 text-primary border-primary/20 text-sm px-3 py-1">
                       {c.brands?.name}{c.models ? ` ${c.models.name}` : ''}
                     </Badge>
                   ))}
@@ -207,7 +222,7 @@ export default function ListingPage() {
             )}
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - seller info + CTA */}
           <div className="space-y-4 hidden lg:block">
             {sellerStats && <SellerCard stats={sellerStats} />}
             <Button className="w-full gap-2" size="lg" onClick={handleContact}>
