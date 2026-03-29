@@ -66,8 +66,8 @@ export default function SearchPage() {
       let q = supabase.from('listings').select('*, listing_images(*), listing_compatibility(*, brands(*), models(*))').eq('status', 'active');
 
       if (query) q = q.ilike('title', `%${query}%`);
-      if (condition) q = q.eq('condition', condition);
-      if (type) q = q.eq('type', type);
+      if (condition && condition !== 'all') q = q.eq('condition', condition as 'new' | 'used');
+      if (type && type !== 'all') q = q.eq('type', type as 'part' | 'motorcycle');
 
       if (brandId) {
         const { data: compatIds } = await supabase
