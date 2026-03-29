@@ -118,17 +118,18 @@ export interface Review {
 export type TrustLevel = 'green' | 'yellow' | 'red';
 
 export function getTrustLevel(stats: SellerStats): TrustLevel {
-  const score = calculateTrustScore(stats);
+  const score = stats.trust_score ?? calculateTrustScore(stats);
   if (score >= 70) return 'green';
   if (score >= 40) return 'yellow';
   return 'red';
 }
 
 export function calculateTrustScore(stats: SellerStats): number {
-  let score = 50; // base
-  score += Math.min(stats.avg_rating * 6, 30); // up to 30 from rating
-  score += Math.min(stats.successful_deals * 2, 20); // up to 20 from deals
-  score -= Math.max(0, 5 - stats.total_reviews) * 2; // penalty for few reviews
+  if (stats.trust_score !== undefined && stats.trust_score !== null) return stats.trust_score;
+  let score = 50;
+  score += Math.min(stats.avg_rating * 6, 30);
+  score += Math.min(stats.successful_deals * 2, 20);
+  score -= Math.max(0, 5 - stats.total_reviews) * 2;
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
