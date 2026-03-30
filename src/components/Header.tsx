@@ -13,8 +13,8 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
       <div className="container flex h-14 items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold tracking-tight">
-          <span className="text-primary">МОТО</span>
-          <span className="text-foreground">МАРКЕТ</span>
+          <span className="text-primary">m-13</span>
+          <span className="text-foreground">.store</span>
         </Link>
 
         {/* Desktop nav */}
