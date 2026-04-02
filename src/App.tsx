@@ -13,6 +13,7 @@ import MessagesPage from "./pages/MessagesPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import SellerProfilePage from "./pages/SellerProfilePage";
 import ProfilePage from "./pages/ProfilePage";
+import EditListingPage from "./pages/EditListingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
