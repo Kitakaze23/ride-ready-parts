@@ -118,24 +118,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="container py-8">
-        <h2 className="font-display text-xl font-bold">Категории</h2>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-          {categories?.map((cat) => (
-            <Link
-              key={cat.id}
-              to={`/search?category=${cat.id}`}
-              className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 text-center transition-all hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                {CATEGORY_ICONS[cat.name] || <Wrench className="h-5 w-5" />}
-              </div>
-              <span className="text-xs font-medium leading-tight">{cat.name}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
 
       {/* Featured Listings */}
       <section className="container pb-12">
