@@ -123,7 +123,7 @@ export default function SearchPage() {
 
         <div className="mt-4 flex gap-6">
           <SearchFilters
-            type={type} setType={setType}
+            type={type}
             brandId={brandId} setBrandId={setBrandId}
             modelId={modelId} setModelId={setModelId}
             generationId={generationId} setGenerationId={setGenerationId}
