@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Wrench, Zap, Disc3, SlidersHorizontal, ShieldCheck, Bike, Shirt, ArrowRight } from 'lucide-react';
+import { Search, ChevronRight, Wrench, Bike, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/Header';
