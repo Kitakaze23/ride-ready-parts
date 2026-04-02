@@ -35,6 +35,7 @@ const App = () => (
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/seller/:id" element={<SellerProfilePage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/edit-listing/:id" element={<EditListingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
