@@ -9,16 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import heroBg from '@/assets/hero-bg.jpg';
 
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  'Двигатель': <Wrench className="h-5 w-5" />,
-  'Электрика': <Zap className="h-5 w-5" />,
-  'Тормоза': <Disc3 className="h-5 w-5" />,
-  'Подвеска': <SlidersHorizontal className="h-5 w-5" />,
-  'Кузовные детали': <ShieldCheck className="h-5 w-5" />,
-  'Расходники': <Wrench className="h-5 w-5" />,
-  'Аксессуары': <Bike className="h-5 w-5" />,
-  'Экипировка': <Shirt className="h-5 w-5" />,
-};
 
 export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
