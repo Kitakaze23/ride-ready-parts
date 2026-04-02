@@ -35,8 +35,14 @@ export default function CreateListingPage() {
   const [city, setCity] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [categoryId, setCategoryId] = useState('');
 
-  // Compatibility
+  // Motorcycle brand/model/generation
+  const [motoBrandId, setMotoBrandId] = useState('');
+  const [motoModelId, setMotoModelId] = useState('');
+  const [motoGenId, setMotoGenId] = useState('');
+
+  // Compatibility (parts only)
   const [compatEnabled, setCompatEnabled] = useState(false);
   const [compatList, setCompatList] = useState<CompatEntry[]>([]);
   const [selBrandId, setSelBrandId] = useState('');
@@ -51,7 +57,37 @@ export default function CreateListingPage() {
     },
   });
 
-  const { data: models } = useQuery({
+  const { data: categories } = useQuery({
+    queryKey: ['categories-all'],
+    queryFn: async () => {
+      const { data } = await supabase.from('categories').select('*').order('name');
+      return data || [];
+    },
+  });
+
+  // Models/generations for motorcycle type
+  const { data: motoModels } = useQuery({
+    queryKey: ['models', motoBrandId],
+    queryFn: async () => {
+      if (!motoBrandId) return [];
+      const { data } = await supabase.from('models').select('*').eq('brand_id', motoBrandId).order('name');
+      return data || [];
+    },
+    enabled: !!motoBrandId,
+  });
+
+  const { data: motoGenerations } = useQuery({
+    queryKey: ['generations', motoModelId],
+    queryFn: async () => {
+      if (!motoModelId) return [];
+      const { data } = await supabase.from('generations').select('*').eq('model_id', motoModelId).order('year_from');
+      return data || [];
+    },
+    enabled: !!motoModelId,
+  });
+
+  // Models/generations for compat selector (parts)
+  const { data: compatModels } = useQuery({
     queryKey: ['models', selBrandId],
     queryFn: async () => {
       if (!selBrandId) return [];
@@ -61,7 +97,7 @@ export default function CreateListingPage() {
     enabled: !!selBrandId,
   });
 
-  const { data: generations } = useQuery({
+  const { data: compatGenerations } = useQuery({
     queryKey: ['generations', selModelId],
     queryFn: async () => {
       if (!selModelId) return [];
@@ -79,8 +115,8 @@ export default function CreateListingPage() {
   const addCompat = () => {
     if (!selBrandId) return;
     const brand = brands?.find((b: any) => b.id === selBrandId);
-    const model = models?.find((m: any) => m.id === selModelId);
-    const gen = generations?.find((g: any) => g.id === selGenId);
+    const model = compatModels?.find((m: any) => m.id === selModelId);
+    const gen = compatGenerations?.find((g: any) => g.id === selGenId);
     if (brand) {
       setCompatList([...compatList, {
         brandId: brand.id,
@@ -109,6 +145,14 @@ export default function CreateListingPage() {
   const removeImage = (idx: number) => {
     setImages(images.filter((_, i) => i !== idx));
     setPreviews(previews.filter((_, i) => i !== idx));
+  };
+
+  const handleTypeChange = (v: 'part' | 'motorcycle') => {
+    setType(v);
+    // Reset type-specific fields
+    setMotoBrandId(''); setMotoModelId(''); setMotoGenId('');
+    setCompatEnabled(false); setCompatList([]);
+    setCategoryId('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,8 +192,18 @@ export default function CreateListingPage() {
         }
       }
 
-      // Insert compatibility
-      if (compatEnabled) {
+      // Insert motorcycle brand/model/generation as compatibility
+      if (type === 'motorcycle' && motoBrandId) {
+        await supabase.from('listing_compatibility').insert({
+          listing_id: listing.id,
+          brand_id: motoBrandId,
+          model_id: motoModelId || null,
+          generation_id: motoGenId || null,
+        });
+      }
+
+      // Insert part compatibility entries
+      if (type === 'part' && compatEnabled) {
         for (const c of compatList) {
           await supabase.from('listing_compatibility').insert({
             listing_id: listing.id,
@@ -158,6 +212,14 @@ export default function CreateListingPage() {
             generation_id: c.generationId || null,
           });
         }
+      }
+
+      // Insert category
+      if (type === 'part' && categoryId) {
+        await supabase.from('listing_categories').insert({
+          listing_id: listing.id,
+          category_id: categoryId,
+        });
       }
 
       toast.success('Объявление создано!');
@@ -204,7 +266,7 @@ export default function CreateListingPage() {
 
             <div>
               <Label>Тип</Label>
-              <Select value={type} onValueChange={(v) => setType(v as any)}>
+              <Select value={type} onValueChange={(v) => handleTypeChange(v as any)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="part">Запчасть</SelectItem>
@@ -240,68 +302,129 @@ export default function CreateListingPage() {
             </div>
           </div>
 
-          {/* Compatibility Toggle */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display font-bold">Подходит к моделям</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Укажите мотоциклы, к которым подходит запчасть</p>
-              </div>
-              <Switch checked={compatEnabled} onCheckedChange={setCompatEnabled} />
-            </div>
-
-            {compatEnabled && (
-              <div className="mt-4 space-y-3">
-                {compatList.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {compatList.map((c, i) => (
-                      <Badge key={i} variant="secondary" className="gap-1">
-                        {c.brandName} {c.modelName} {c.generationName}
-                        <button type="button" onClick={() => setCompatList(compatList.filter((_, j) => j !== i))}>
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <Select value={selBrandId} onValueChange={(v) => { setSelBrandId(v); setSelModelId(''); setSelGenId(''); }}>
-                    <SelectTrigger><SelectValue placeholder="Марка" /></SelectTrigger>
+          {/* Motorcycle: Brand / Model / Year */}
+          {type === 'motorcycle' && (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <h2 className="font-display font-bold">Марка и модель</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Марка</Label>
+                  <Select value={motoBrandId} onValueChange={(v) => { setMotoBrandId(v); setMotoModelId(''); setMotoGenId(''); }}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="Выберите" /></SelectTrigger>
                     <SelectContent>
                       {brands?.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
 
-                  {selBrandId && models && models.length > 0 && (
-                    <Select value={selModelId} onValueChange={(v) => { setSelModelId(v); setSelGenId(''); }}>
-                      <SelectTrigger><SelectValue placeholder="Модель" /></SelectTrigger>
+                {motoBrandId && motoModels && motoModels.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Модель</Label>
+                    <Select value={motoModelId} onValueChange={(v) => { setMotoModelId(v); setMotoGenId(''); }}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Выберите" /></SelectTrigger>
                       <SelectContent>
-                        {models.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                        {motoModels.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                  )}
+                  </div>
+                )}
 
-                  {selModelId && generations && generations.length > 0 && (
-                    <Select value={selGenId} onValueChange={setSelGenId}>
-                      <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
+                {motoModelId && motoGenerations && motoGenerations.length > 0 && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Год выпуска</Label>
+                    <Select value={motoGenId} onValueChange={setMotoGenId}>
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="Выберите" /></SelectTrigger>
                       <SelectContent>
-                        {generations.map((g: any) => (
+                        {motoGenerations.map((g: any) => (
                           <SelectItem key={g.id} value={g.id}>
                             {g.name}{g.year_from ? ` (${g.year_from}–${g.year_to || '...'})` : ''}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Parts: Category */}
+          {type === 'part' && (
+            <div>
+              <Label>Категория запчасти</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Выберите категорию" /></SelectTrigger>
+                <SelectContent>
+                  {categories?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Parts: Compatibility Toggle */}
+          {type === 'part' && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-display font-bold">Подходит к моделям</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Укажите мотоциклы, к которым подходит запчасть</p>
+                </div>
+                <Switch checked={compatEnabled} onCheckedChange={setCompatEnabled} />
+              </div>
+
+              {compatEnabled && (
+                <div className="mt-4 space-y-3">
+                  {compatList.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {compatList.map((c, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1">
+                          {c.brandName} {c.modelName} {c.generationName}
+                          <button type="button" onClick={() => setCompatList(compatList.filter((_, j) => j !== i))}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
                   )}
 
-                  <Button type="button" variant="outline" size="icon" onClick={addCompat} disabled={!selBrandId} className="h-10 w-10">
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <Select value={selBrandId} onValueChange={(v) => { setSelBrandId(v); setSelModelId(''); setSelGenId(''); }}>
+                      <SelectTrigger><SelectValue placeholder="Марка" /></SelectTrigger>
+                      <SelectContent>
+                        {brands?.map((b: any) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+
+                    {selBrandId && compatModels && compatModels.length > 0 && (
+                      <Select value={selModelId} onValueChange={(v) => { setSelModelId(v); setSelGenId(''); }}>
+                        <SelectTrigger><SelectValue placeholder="Модель" /></SelectTrigger>
+                        <SelectContent>
+                          {compatModels.map((m: any) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {selModelId && compatGenerations && compatGenerations.length > 0 && (
+                      <Select value={selGenId} onValueChange={setSelGenId}>
+                        <SelectTrigger><SelectValue placeholder="Год" /></SelectTrigger>
+                        <SelectContent>
+                          {compatGenerations.map((g: any) => (
+                            <SelectItem key={g.id} value={g.id}>
+                              {g.name}{g.year_from ? ` (${g.year_from}–${g.year_to || '...'})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    <Button type="button" variant="outline" size="icon" onClick={addCompat} disabled={!selBrandId} className="h-10 w-10">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           <Button type="submit" size="lg" className="w-full" disabled={loading}>
             {loading ? 'Публикация...' : 'Опубликовать'}
