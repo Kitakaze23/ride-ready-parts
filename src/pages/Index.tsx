@@ -14,13 +14,6 @@ export default function Index() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
-  const { data: categories } = useQuery({
-    queryKey: ['categories-root'],
-    queryFn: async () => {
-      const { data } = await supabase.from('categories').select('*').is('parent_id', null).order('name');
-      return data || [];
-    },
-  });
 
   const { data: listings, isLoading } = useQuery({
     queryKey: ['featured-listings'],
