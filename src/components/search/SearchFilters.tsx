@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface SearchFiltersProps {
   type: string;
-  setType: (v: string) => void;
   brandId: string;
   setBrandId: (v: string) => void;
   modelId: string;
@@ -32,7 +31,7 @@ interface SearchFiltersProps {
 }
 
 export function SearchFilters({
-  type, setType, brandId, setBrandId, modelId, setModelId,
+  type, brandId, setBrandId, modelId, setModelId,
   generationId, setGenerationId,
   condition, setCondition, categoryId, setCategoryId,
   priceMin, setPriceMin, priceMax, setPriceMax,
@@ -49,18 +48,6 @@ export function SearchFilters({
           </Button>
         </div>
       )}
-
-      <div>
-        <Label className="text-xs text-muted-foreground">Тип</Label>
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="mt-1"><SelectValue placeholder="Все" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            <SelectItem value="part">Запчасти</SelectItem>
-            <SelectItem value="motorcycle">Мотоциклы</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       <div>
         <Label className="text-xs text-muted-foreground">Марка</Label>
@@ -88,11 +75,11 @@ export function SearchFilters({
 
       {modelId && modelId !== 'all' && generations && generations.length > 0 && (
         <div>
-          <Label className="text-xs text-muted-foreground">Год / поколение</Label>
+          <Label className="text-xs text-muted-foreground">Год выпуска</Label>
           <Select value={generationId} onValueChange={setGenerationId}>
-            <SelectTrigger className="mt-1"><SelectValue placeholder="Любое" /></SelectTrigger>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Любой" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Любое</SelectItem>
+              <SelectItem value="all">Любой</SelectItem>
               {generations.map((g: any) => (
                 <SelectItem key={g.id} value={g.id}>
                   {g.name}{g.year_from ? ` (${g.year_from}–${g.year_to || '...'})` : ''}
@@ -103,16 +90,18 @@ export function SearchFilters({
         </div>
       )}
 
-      <div>
-        <Label className="text-xs text-muted-foreground">Категория</Label>
-        <Select value={categoryId} onValueChange={setCategoryId}>
-          <SelectTrigger className="mt-1"><SelectValue placeholder="Все" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Все</SelectItem>
-            {categories?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
+      {type === 'part' && (
+        <div>
+          <Label className="text-xs text-muted-foreground">Категория</Label>
+          <Select value={categoryId} onValueChange={setCategoryId}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Все" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все</SelectItem>
+              {categories?.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div>
         <Label className="text-xs text-muted-foreground">Состояние</Label>
@@ -129,22 +118,8 @@ export function SearchFilters({
       <div>
         <Label className="text-xs text-muted-foreground">Цена (₽)</Label>
         <div className="mt-1 flex gap-2">
-          <Input
-            type="number"
-            placeholder="от"
-            value={priceMin}
-            onChange={(e) => setPriceMin(e.target.value)}
-            className="flex-1"
-            min="0"
-          />
-          <Input
-            type="number"
-            placeholder="до"
-            value={priceMax}
-            onChange={(e) => setPriceMax(e.target.value)}
-            className="flex-1"
-            min="0"
-          />
+          <Input type="number" placeholder="от" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} className="flex-1" min="0" />
+          <Input type="number" placeholder="до" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} className="flex-1" min="0" />
         </div>
       </div>
 
